@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta name="description" content="Calculator">
     <meta name="keywords" content="HTML,CSS,JavaScript">
@@ -12,41 +13,46 @@
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-PFT886EMJC"></script>
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
 
-  gtag('config', 'G-PFT886EMJC');
+    gtag('config', 'G-PFT886EMJC');
 </script>
 
 <body>
     <div class="container">
         <h1>Calculadora de Divisas</h1>
-        
+
         <!-- Mostrar valores del USD -->
         <div id="dolar-valores">
             <p id="paralelo-valor">Dólar Paralelo: --</p>
+            <p id="promedio-valor">Dólar Promedio: --</p>
             <p id="bcv-valor">Dólar BCV: --</p>
         </div>
 
-        <form id="mi-form" onsubmit="handleSubmit(event)">
+        <form id="mi-form" onsubmit="">
             <label for="mi-input">Ingresa el monto en dólares:</label>
-            <input type="number" id="mi-input" placeholder="Monto en USD" required>
-            <button type="submit">Calcular</button>
+            <input type="number" step="0.01" id="mi-input" placeholder="Monto en USD">
+            <input type="number" step="0.01" id="mi-input2" placeholder="Monto en Bs">
+            <button type="submit">Restablecer todo</button>
         </form>
 
         <div id="resultados">
             <h2>Resultados</h2>
-            <p id="bs-result">Costo en Bolívares (Paralelo): --</p>
-            <p id="bcv-result">Costo en Dólares (BCV): --</p>
+            <p id="paralelo-result">Costo en (Paralelo): --</p>
+            <p id="promedio-result">Costo en (Promedio): --</p>
+            <p id="bcv-result">Costo en (BCV): --</p>
         </div>
     </div>
 
     <footer>
-        <p>Por cortesía de <a href="https://instagram.com/ge.boutique21/profilecard/?igsh=MTd4enhpY3lrd2t1cA==" target="_blank">ge.boutique</a></p>
+        <p>Por cortesía de <a href="https://instagram.com/ge.boutique21/profilecard/?igsh=MTd4enhpY3lrd2t1cA=="
+                target="_blank">ge.boutique</a></p>
     </footer>
-    
+
 
     <script src="main.js"></script>
 </body>
+
 </html>
