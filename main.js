@@ -47,7 +47,7 @@ function calculateUsd() {
 
         document.getElementById('paralelo-result').textContent = `Costo en Bolívares (Paralelo): ${valorParaleloBs.toFixed(2)} Bs`;
         document.getElementById('promedio-result').textContent = `Costo en Bolívares (Promedio): ${valorPromedio.toFixed(2)} Bs`;
-        document.getElementById('bcv-result').textContent = `Costo en Dólares (BCV): ${valorBcv.toFixed(2)} USD`;
+        document.getElementById('bcv-result').textContent = `Costo en Dólares (BCV): ${valorBcv.toFixed(2)} Bs`;
     } else {
         clearResults();
     }
