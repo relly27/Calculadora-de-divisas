@@ -5,32 +5,97 @@ let Paralelo;
 let bcv;
 let promedio;
 
-// Función para obtener los valores del USD cuando se carga la página
+// Función para formatear la fecha y hora
+function formatDateTime(timestamp) {
+    const date = new Date(timestamp);
+    return date.toLocaleString(); // Formato local de fecha y hora
+}
+
+// Función para actualizar los valores en la interfaz
+function updateValues(data) {
+    Paralelo = data.Paralelo;
+    bcv = data.bcv;
+    promedio = data.promedio;
+
+    // Actualizar los valores en la interfaz
+    document.getElementById('paralelo-valor').textContent = `Dólar Paralelo: ${Paralelo.toFixed(2)} Bs`;
+    document.getElementById('bcv-valor').textContent = `Dólar BCV: ${bcv.toFixed(2)} Bs`;
+    document.getElementById('promedio-valor').textContent = `Promedio: ${promedio.toFixed(2)} Bs`;
+}
+
+// Función para obtener los valores del USD desde la API o del localStorage
 async function fetchUsdValues() {
+    const storedData = localStorage.getItem('usdValues');
+    const now = new Date().getTime();
+    const fourHours = 4 * 60 * 60 * 1000; // 4 horas en milisegundos
+
+    if (storedData) {
+        const { data, timestamp } = JSON.parse(storedData);
+
+        // Mostrar la última actualización
+        document.getElementById('last-update').textContent = `Última actualización local: ${formatDateTime(timestamp)}`;
+
+        // Verificar si han pasado menos de 4 horas
+        if (now - timestamp < fourHours) {
+            // Usar los datos almacenados si no han pasado 4 horas
+            updateValues(data);
+            return;
+        }
+    }
+
+    // Si los datos son antiguos o no existen, hacer una nueva solicitud
     try {
-        // Fetch para el dólar paralelo
         let responseParalelo = await fetch(apiParalelo);
         let dataParalelo = await responseParalelo.json();
-        Paralelo = dataParalelo.monitors.enparalelovzla.price;
-        document.getElementById('paralelo-valor').textContent = `Dólar Paralelo: ${Paralelo.toFixed(2)} Bs`;
-
-        // Fetch para el dólar BCV
         let responseBcv = await fetch(apiBcv);
         let dataBcv = await responseBcv.json();
-        bcv = dataBcv.monitors.usd.price;
-        document.getElementById('bcv-valor').textContent = `Dólar BCV: ${bcv.toFixed(2)} Bs`;
 
-        // Calcular el promedio de los valores
-        promedio = (Paralelo + bcv) / 2;
-        document.getElementById('promedio-valor').textContent = `Promedio: ${promedio.toFixed(2)} Bs`;
+        const newData = {
+            Paralelo: dataParalelo.monitors.enparalelovzla.price,
+            bcv: dataBcv.monitors.usd.price,
+            promedio: (dataParalelo.monitors.enparalelovzla.price + dataBcv.monitors.usd.price) / 2
+        };
 
+        // Guardar los nuevos datos en el localStorage con la marca de tiempo actual
+        localStorage.setItem('usdValues', JSON.stringify({ data: newData, timestamp: now }));
+
+        // Mostrar la nueva fecha y hora de actualización
+        document.getElementById('last-update').textContent = `Última actualización local: ${formatDateTime(now)}`;
+
+        updateValues(newData);
     } catch (error) {
         console.error('Error:', error);
     }
 }
 
+// Función para copiar el texto al portapapeles
+async function copyToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        alert('Texto copiado: ' + text); // Opcional: Mostrar un mensaje de confirmación
+    } catch (error) {
+        console.error('Error al copiar:', error);
+        alert('No se pudo copiar el texto'); // Opcional: Mostrar un mensaje de error
+    }
+}
+
+// Agregar eventos a los botones de copiar
+document.querySelectorAll('.copy-button').forEach(button => {
+    button.addEventListener('click', () => {
+        const targetId = button.getAttribute('data-target');
+        const textToCopy = document.getElementById(targetId).textContent;
+        copyToClipboard(textToCopy);
+    });
+});
+
 // Llamar a la función cuando se carga la página
 window.onload = fetchUsdValues;
+
+// Botón de actualización
+document.getElementById('update-button').addEventListener('click', () => {
+    localStorage.removeItem('usdValues'); // Eliminar los datos almacenados para forzar la actualización
+    fetchUsdValues(); // Obtener nuevos datos
+});
 
 // Seleccionar los inputs
 const inputUsd = document.querySelector('#mi-input');
@@ -72,6 +137,7 @@ function calculateBs() {
 
 // Función para limpiar los resultados
 function clearResults() {
+    document.getElementById('labelMonto').textContent = "Ingresa el monto:";
     document.getElementById('paralelo-result').textContent = 'Costo en (Paralelo): --';
     document.getElementById('promedio-result').textContent = 'Costo en (Promedio): --';
     document.getElementById('bcv-result').textContent = 'Costo en (BCV): --';
@@ -85,6 +151,7 @@ inputUsd.addEventListener('input', () => {
         inputBs.style.display = 'block';
         clearResults(); // Limpiar resultados
     } else {
+        document.getElementById("labelMonto").textContent = "Ingresa el monto en dólares:";
         inputBs.style.display = 'none'; // Ocultar el otro input
         calculateUsd(); // Calcular y mostrar resultados
     }
@@ -98,13 +165,8 @@ inputBs.addEventListener('input', () => {
         inputBs.style.display = 'block';
         clearResults(); // Limpiar resultados
     } else {
+        document.getElementById("labelMonto").textContent = "Ingresa el monto en Bs:";
         inputUsd.style.display = 'none'; // Ocultar el otro input
         calculateBs(); // Calcular y mostrar resultados
     }
 });
-
-// Mostrar ambos inputs al hacer clic en el formulario (opcional)
-// document.getElementById('form').addEventListener('click', () => {
-//     inputUsd.style.display = 'block';
-//     inputBs.style.display = 'block';
-// });

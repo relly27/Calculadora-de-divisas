@@ -50,7 +50,7 @@ input[type="number"] {
     font-size: 16px;
 }
 
-button {
+.buttonSubmit {
     padding: 10px 20px;
     background-color: #2c3e50;
     color: white;
@@ -60,8 +60,60 @@ button {
     font-size: 16px;
 }
 
-button:hover {
+.buttonSubmit:hover {
     background-color: #34495e;
+}
+
+#update-button {
+    background-color: #34495e; /* Color de fondo azul */
+    color: white; /* Color del ícono */
+    border: none; /* Sin borde */
+    border-radius: 50%; /* Forma circular */
+    width: 30px; /* Tamaño del botón */
+    height: 30px;
+    cursor: pointer; /* Cambia el cursor al pasar el mouse */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Sombra suave */
+    transition: background-color 0.3s ease; /* Transición suave */
+}
+
+#update-button:hover {
+    background-color: #0056b3; /* Color de fondo al pasar el mouse */
+}
+
+#update-button:active {
+    background-color: #004080; /* Color de fondo al hacer clic */
+}
+
+#update-button i {
+    font-size: 18px; /* Tamaño del ícono */
+}
+
+#last-update {
+    margin-left: 10px; /* Espacio entre el botón y el texto */
+    font-size: 14px; /* Tamaño de la fuente */
+    color: #555; /* Color del texto */
+    font-style: italic; /* Texto en cursiva */
+}
+
+.copy-button {
+    background: none;
+    border: none;
+    color: #007bff; /* Color azul para el ícono */
+    cursor: pointer;
+    margin-left: 10px; /* Espacio entre el texto y el botón */
+    font-size: 14px; /* Tamaño del ícono */
+    transition: color 0.3s ease; /* Transición suave */
+}
+
+.copy-button:hover {
+    color: #0056b3; /* Color azul más oscuro al pasar el mouse */
+}
+
+.copy-button:active {
+    color: #004080; /* Color azul más oscuro al hacer clic */
 }
 
 #resultados {

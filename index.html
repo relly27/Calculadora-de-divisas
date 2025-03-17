@@ -7,6 +7,7 @@
     <meta name="author" content="Relly Garcia">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="assets\calculator.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <title>Calculadora de Divisas</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -26,29 +27,45 @@
 
         <!-- Mostrar valores del USD -->
         <div id="dolar-valores">
+            <button id="update-button" title="Actualizar">
+                <i class="fa fa-history" aria-hidden="true"></i>
+            </button>
+            <span id="last-update">Última actualización local: --</span>
             <p id="paralelo-valor">Dólar Paralelo: --</p>
             <p id="promedio-valor">Dólar Promedio: --</p>
             <p id="bcv-valor">Dólar BCV: --</p>
         </div>
 
         <form id="mi-form" onsubmit="">
-            <label for="mi-input">Ingresa el monto en dólares:</label>
+            <label for="mi-input" id="labelMonto">Ingresa el monto:</label>
             <input type="number" step="0.01" id="mi-input" placeholder="Monto en USD">
             <input type="number" step="0.01" id="mi-input2" placeholder="Monto en Bs">
-            <button type="submit">Restablecer todo</button>
+            <button class="buttonSubmit" type="submit">Restablecer todo</button>
         </form>
 
         <div id="resultados">
             <h2>Resultados</h2>
-            <p id="paralelo-result">Costo en (Paralelo): --</p>
-            <p id="promedio-result">Costo en (Promedio): --</p>
-            <p id="bcv-result">Costo en (BCV): --</p>
+            <p id="paralelo-result">Costo en (Paralelo): -- 
+                <button class="copy-button" data-target="paralelo-result" title="Copiar">
+                    <i class="fa fa-copy"></i>
+                </button>
+            </p>
+            <p id="promedio-result">Costo en (Promedio): -- 
+                <button class="copy-button" data-target="promedio-result" title="Copiar">
+                    <i class="fa fa-copy"></i>
+                </button>
+            </p>
+            <p id="bcv-result">Costo en (BCV): -- 
+                <button class="copy-button" data-target="bcv-result" title="Copiar">
+                    <i class="fa fa-copy"></i>
+                </button>
+            </p>
         </div>
     </div>
 
     <footer>
         <p>Por cortesía de <a href="https://instagram.com/ge.boutique21/profilecard/?igsh=MTd4enhpY3lrd2t1cA=="
-                target="_blank">ge.boutique</a></p>
+                target="_blank" style="background-color: rgb(19, 148, 223); border-radius: 10px; padding: 10px; text-decoration: none;">Ge.boutique</a></p>
     </footer>
 
 
