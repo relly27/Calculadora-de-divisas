@@ -72,24 +72,28 @@ async function fetchUsdValues() {
 async function copyToClipboard(text) {
     try {
         await navigator.clipboard.writeText(text);
-        alert('Texto copiado: ' + text); // Opcional: Mostrar un mensaje de confirmación
+        console.log('Texto copiado:', text); // Opcional: Mostrar un mensaje en la consola
     } catch (error) {
         console.error('Error al copiar:', error);
-        alert('No se pudo copiar el texto'); // Opcional: Mostrar un mensaje de error
     }
 }
 
-// Agregar eventos a los botones de copiar
-document.querySelectorAll('.copy-button').forEach(button => {
-    button.addEventListener('click', () => {
-        const targetId = button.getAttribute('data-target');
-        const textToCopy = document.getElementById(targetId).textContent;
-        copyToClipboard(textToCopy);
+// Función para agregar eventos a los botones de copiar
+function setupCopyButtons() {
+    document.querySelectorAll('.copy-button').forEach(button => {
+        button.addEventListener('click', () => {
+            const targetId = button.getAttribute('data-target');
+            const textToCopy = document.getElementById(targetId).textContent.split(': ')[1]; // Copiar solo el valor
+            copyToClipboard(textToCopy);
+        });
     });
-});
+}
 
 // Llamar a la función cuando se carga la página
-window.onload = fetchUsdValues;
+window.onload = () => {
+    fetchUsdValues();
+    setupCopyButtons(); // Configurar los botones de copiar al cargar la página
+};
 
 // Botón de actualización
 document.getElementById('update-button').addEventListener('click', () => {
@@ -110,9 +114,10 @@ function calculateUsd() {
         let valorBcv = bcv * product;
         let valorPromedio = promedio * product;
 
-        document.getElementById('paralelo-result').textContent = `Costo en Bolívares (Paralelo): ${valorParaleloBs.toFixed(2)} Bs`;
-        document.getElementById('promedio-result').textContent = `Costo en Bolívares (Promedio): ${valorPromedio.toFixed(2)} Bs`;
-        document.getElementById('bcv-result').textContent = `Costo en Dólares (BCV): ${valorBcv.toFixed(2)} Bs`;
+        // Actualizar solo el texto dentro del <span>
+        document.getElementById('paralelo-result').textContent = `Costo en Bs (Paralelo): ${valorParaleloBs.toFixed(2)} Bs`;
+        document.getElementById('promedio-result').textContent = `Costo en Bs (Promedio): ${valorPromedio.toFixed(2)} Bs`;
+        document.getElementById('bcv-result').textContent = `Costo en Bs (BCV): ${valorBcv.toFixed(2)} Bs`;
     } else {
         clearResults();
     }
@@ -127,9 +132,10 @@ function calculateBs() {
         let valorBcv = product / bcv;
         let valorPromedio = product / promedio;
 
-        document.getElementById('paralelo-result').textContent = `Costo en Dólares (Paralelo): ${valorParaleloBs.toFixed(2)} USD`;
-        document.getElementById('promedio-result').textContent = `Costo en Dólares (Promedio): ${valorPromedio.toFixed(2)} USD`;
-        document.getElementById('bcv-result').textContent = `Costo en Dólares (BCV): ${valorBcv.toFixed(2)} USD`;
+        // Actualizar solo el texto dentro del <span>
+        document.getElementById('paralelo-result').textContent = `Costo en USD (Paralelo): ${valorParaleloBs.toFixed(2)} USD`;
+        document.getElementById('promedio-result').textContent = `Costo en USD (Promedio): ${valorPromedio.toFixed(2)} USD`;
+        document.getElementById('bcv-result').textContent = `Costo en USD (BCV): ${valorBcv.toFixed(2)} USD`;
     } else {
         clearResults();
     }
