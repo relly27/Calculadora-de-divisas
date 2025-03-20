@@ -5,6 +5,16 @@ let Paralelo;
 let bcv;
 let promedio;
 
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js')
+        .then(function (registration) {
+            // console.log('Service Worker registrado con éxito:', registration);
+        })
+        .catch(function (error) {
+            console.log('Error al registrar el Service Worker:', error);
+        });
+}
+
 // Función para formatear la fecha y hora
 function formatDateTime(timestamp) {
     const date = new Date(timestamp);
@@ -65,6 +75,13 @@ async function fetchUsdValues() {
         updateValues(newData);
     } catch (error) {
         console.error('Error:', error);
+        // Si hay un error (por ejemplo, sin conexión), usar los datos almacenados
+        if (storedData) {
+            const { data } = JSON.parse(storedData);
+            updateValues(data);
+        } else {
+            alert('No se pudieron cargar los datos. Verifica tu conexión a Internet.');
+        }
     }
 }
 
