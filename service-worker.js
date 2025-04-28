@@ -1,4 +1,5 @@
-const CACHE_NAME = 'mi-cache-v3'; // Incrementa la versión
+const CACHE_NAME = 'mi-cache-v3';
+const MAX_CACHE_DAYS = 7; // Configura el número máximo de días
 const urlsToCache = [
   '/',
   '/index.html',
@@ -7,37 +8,77 @@ const urlsToCache = [
   '/assets/calculator.png'
 ];
 
-self.addEventListener('install', function(event) {
+// Función para borrar caché expirada
+const clearExpiredCache = async () => {
+  const cache = await caches.open(CACHE_NAME);
+  const cachedRequests = await cache.keys();
+  const now = new Date();
+
+  cachedRequests.forEach(async (request) => {
+    const cachedResponse = await cache.match(request);
+    if (!cachedResponse) return;
+
+    const cachedDate = new Date(cachedResponse.headers.get('date'));
+    const cacheAgeInDays = (now - cachedDate) / (1000 * 60 * 60 * 24);
+
+    if (cacheAgeInDays > MAX_CACHE_DAYS) {
+      await cache.delete(request);
+      console.log(`Borrado recurso expirado: ${request.url}`);
+    }
+  });
+};
+
+self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(function(cache) {
-        console.log('Cache abierto');
-        return cache.addAll(urlsToCache);
-      })
+      .then(cache => cache.addAll(urlsToCache))
   );
 });
 
-self.addEventListener('activate', function(event) {
+self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(function(cacheNames) {
-      return Promise.all(
-        cacheNames.map(function(cacheName) {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Borrando caché antigua:', cacheName);
-            return caches.delete(cacheName);
+    caches.keys().then(cacheNames => 
+      Promise.all(
+        cacheNames.map(name => {
+          if (name !== CACHE_NAME) {
+            console.log('Borrando caché antigua:', name);
+            return caches.delete(name);
           }
         })
-      );
+      )
+    )
+  );
+});
+
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request).then(response => {
+      // Verificación de frescura (solo para respuestas cacheadas)
+      if (response) {
+        const cachedDate = new Date(response.headers.get('date'));
+        const cacheAgeInDays = (new Date() - cachedDate) / (1000 * 60 * 60 * 24);
+        
+        if (cacheAgeInDays > MAX_CACHE_DAYS) {
+          console.log(`Recurso expirado: ${event.request.url}`);
+          return fetch(event.request) // Obtener versión fresca
+            .then(freshResponse => {
+              const clone = freshResponse.clone();
+              caches.open(CACHE_NAME)
+                .then(cache => cache.put(event.request, clone));
+              return freshResponse;
+            })
+            .catch(() => response); // Fallback al recurso expirado si falla la red
+        }
+        return response;
+      }
+      return fetch(event.request); // No estaba en caché
     })
   );
 });
 
-self.addEventListener('fetch', function(event) {
-  event.respondWith(
-    caches.match(event.request)
-      .then(function(response) {
-        // Devuelve desde caché si está disponible, sino busca en la red
-        return response || fetch(event.request);
-      })
-  );
+// Limpieza periódica (cada 24 horas)
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === 'clean-cache') {
+    event.waitUntil(clearExpiredCache());
+  }
 });
