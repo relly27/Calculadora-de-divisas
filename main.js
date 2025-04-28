@@ -26,11 +26,38 @@ function updateValues(data) {
     Paralelo = data.Paralelo;
     bcv = data.bcv;
     promedio = data.promedio;
+    
+    let porcentajes = {
+        paralelo: ((Paralelo - bcv) / bcv) * 100,
+        promedio: ((promedio - Paralelo) / Paralelo) * 100,
+        bcv: ((bcv - Paralelo) / Paralelo)* 100,
+    }
 
-    // Actualizar los valores en la interfaz
-    document.getElementById('paralelo-valor').textContent = `Dólar Paralelo: ${Paralelo.toFixed(2)} Bs`;
-    document.getElementById('bcv-valor').textContent = `Dólar BCV: ${bcv.toFixed(2)} Bs`;
-    document.getElementById('promedio-valor').textContent = `Promedio: ${promedio.toFixed(2)} Bs`;
+    // Función auxiliar para determinar el color y el símbolo
+    function getPercentageElement(value) {
+        const isPositive = value >= 0;
+        const symbol = isPositive ? '+' : '';
+        const colorClass = isPositive ? 'text-success' : 'text-danger';
+        
+        const small = document.createElement('small');
+        small.className = colorClass;
+        small.textContent = ` ${symbol}${value.toFixed(2)}%`;
+        
+        return small;
+    }
+
+    // Actualizar los valores en la interfaz con los porcentajes
+    const paraleloElement = document.getElementById('paralelo-valor');
+    paraleloElement.textContent = `Dólar Paralelo: ${Paralelo.toFixed(2)} Bs`;
+    paraleloElement.appendChild(getPercentageElement(porcentajes.paralelo));
+
+    const bcvElement = document.getElementById('bcv-valor');
+    bcvElement.textContent = `Dólar BCV: ${bcv.toFixed(2)} Bs`;
+    bcvElement.appendChild(getPercentageElement(porcentajes.bcv));
+
+    const promedioElement = document.getElementById('promedio-valor');
+    promedioElement.textContent = `Promedio: ${promedio.toFixed(2)} Bs`;
+    promedioElement.appendChild(getPercentageElement(porcentajes.promedio));
 }
 
 // Función para obtener los valores del USD desde la API o del localStorage

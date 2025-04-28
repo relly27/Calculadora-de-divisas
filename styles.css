@@ -144,6 +144,14 @@ input[type="number"] {
     font-weight: bold;
 }
 
+.text-success {
+    color: rgb(23, 197, 23);
+}
+
+.text-danger {
+    color: rgb(226, 3, 3);
+}
+
 /* Estilo para el pie de página */
 footer {
     background-color: #2c3e50;
