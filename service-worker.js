@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mi-cache-v1';
+const CACHE_NAME = 'mi-cache-v2';
 const urlsToCache = [
   '/',              // Página principal
   '/index.html',    // Archivo HTML
