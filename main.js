@@ -5,15 +5,14 @@ let Paralelo;
 let bcv;
 let promedio;
 
+// En tu main.js o similar
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/service-worker.js')
-        .then(function (registration) {
-            // console.log('Service Worker registrado con éxito:', registration);
-        })
-        .catch(function (error) {
-            console.log('Error al registrar el Service Worker:', error);
-        });
-}
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/service-worker.js').then(function(registration) {
+        registration.update(); // Fuerza la actualización
+      });
+    });
+  }
 
 // Función para formatear la fecha y hora
 function formatDateTime(timestamp) {

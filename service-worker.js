@@ -1,14 +1,13 @@
-const CACHE_NAME = 'mi-cache-v2';
+const CACHE_NAME = 'mi-cache-v3'; // Incrementa la versión
 const urlsToCache = [
-  '/',              // Página principal
-  '/index.html',    // Archivo HTML
-  '/styles.css',    // Archivo CSS
-  '/main.js',        // Archivo JavaScript
-  '/assets/calculator.png' // Imágenes u otros recursos
+  '/',
+  '/index.html',
+  '/styles.css',
+  '/main.js',
+  '/assets/calculator.png'
 ];
 
 self.addEventListener('install', function(event) {
-  // Almacena los recursos en caché durante la instalación
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(function(cache) {
@@ -18,16 +17,27 @@ self.addEventListener('install', function(event) {
   );
 });
 
+self.addEventListener('activate', function(event) {
+  event.waitUntil(
+    caches.keys().then(function(cacheNames) {
+      return Promise.all(
+        cacheNames.map(function(cacheName) {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Borrando caché antigua:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+});
+
 self.addEventListener('fetch', function(event) {
   event.respondWith(
     caches.match(event.request)
       .then(function(response) {
-        // Devuelve el recurso desde la caché si está disponible
-        if (response) {
-          return response;
-        }
-        // Si no está en la caché, haz una solicitud a la red
-        return fetch(event.request);
+        // Devuelve desde caché si está disponible, sino busca en la red
+        return response || fetch(event.request);
       })
   );
 });
