@@ -1,5 +1,5 @@
-const CACHE_NAME = 'mi-cache-v3';
-const MAX_CACHE_DAYS = 7; // Configura el número máximo de días
+const CACHE_NAME = 'v6';
+const MAX_CACHE_DAYS = 5; // Configura el número máximo de días
 const urlsToCache = [
   '/',
   '/index.html',

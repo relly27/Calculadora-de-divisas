@@ -1,4 +1,4 @@
-const apiParalelo = "https://pydolarve.org/api/v1/dollar?page=enparalelovzla";
+const apiEuroBcv = "https://corsproxy.io/?url=https://www.bancodevenezuela.com/files/tasas/tasas2.json";
 const apiBcv = "https://pydolarve.org/api/v1/dollar?page=bcv";
 
 let Paralelo;
@@ -22,14 +22,20 @@ function formatDateTime(timestamp) {
 
 // Función para actualizar los valores en la interfaz
 function updateValues(data) {
+
+    if (typeof data.Paralelo !== 'number' || typeof data.bcv !== 'number' || typeof data.promedio !== 'number') {
+        console.error("Datos no son números:", data);
+        return;
+    }
+
     Paralelo = data.Paralelo;
     bcv = data.bcv;
     promedio = data.promedio;
-    
+
     let porcentajes = {
         paralelo: ((Paralelo - bcv) / bcv) * 100,
         promedio: ((promedio - Paralelo) / Paralelo) * 100,
-        bcv: ((bcv - Paralelo) / Paralelo)* 100,
+        bcv: ((bcv - Paralelo) / Paralelo) * 100,
     }
 
     // Función auxiliar para determinar el color y el símbolo
@@ -37,17 +43,17 @@ function updateValues(data) {
         const isPositive = value >= 0;
         const symbol = isPositive ? '+' : '';
         const colorClass = isPositive ? 'text-success' : 'text-danger';
-        
+
         const small = document.createElement('small');
         small.className = colorClass;
         small.textContent = ` ${symbol}${value.toFixed(2)}%`;
-        
+
         return small;
     }
 
     // Actualizar los valores en la interfaz con los porcentajes
     const paraleloElement = document.getElementById('paralelo-valor');
-    paraleloElement.textContent = `Dólar Paralelo: ${Paralelo.toFixed(2)} Bs`;
+    paraleloElement.textContent = `Euros BCV: ${Paralelo.toFixed(2)} Bs`;
     paraleloElement.appendChild(getPercentageElement(porcentajes.paralelo));
 
     const bcvElement = document.getElementById('bcv-valor');
@@ -81,23 +87,23 @@ async function fetchUsdValues() {
 
     // Si los datos son antiguos o no existen, hacer una nueva solicitud
     try {
-        let responseParalelo = await fetch(apiParalelo);
+        let responseParalelo = await fetch(apiEuroBcv);
         let dataParalelo = await responseParalelo.json();
         let responseBcv = await fetch(apiBcv);
         let dataBcv = await responseBcv.json();
 
         const newData = {
-            Paralelo: dataParalelo.monitors.enparalelovzla.price,
+            Paralelo: parseFloat(dataParalelo.mesacambio.bcv.euros.replace(/[^0-9.]/g, '.')), // Elimina todo excepto números y punto decimal
             bcv: dataBcv.monitors.usd.price,
-            promedio: (dataParalelo.monitors.enparalelovzla.price + dataBcv.monitors.usd.price) / 2
+            promedio: (parseFloat(dataParalelo.mesacambio.bcv.euros.replace(/[^0-9.]/g, '.')) + dataBcv.monitors.usd.price) / 2
         };
-
         // Guardar los nuevos datos en el localStorage con la marca de tiempo actual
         localStorage.setItem('usdValues', JSON.stringify({ data: newData, timestamp: now }));
 
         // Mostrar la nueva fecha y hora de actualización
         document.getElementById('last-update').textContent = `Última actualización local: ${formatDateTime(now)}`;
 
+        // console.log("datos ",newData.Paralelo);
         updateValues(newData);
     } catch (error) {
         console.error('Error:', error);
@@ -107,6 +113,7 @@ async function fetchUsdValues() {
             updateValues(data);
         } else {
             alert('No se pudieron cargar los datos. Verifica tu conexión a Internet.');
+            console.error('Error:', error);
         }
     }
 }
@@ -158,7 +165,7 @@ function calculateUsd() {
         let valorPromedio = promedio * product;
 
         // Actualizar solo el texto dentro del <span>
-        document.getElementById('paralelo-result').textContent = `Costo en Bs (Paralelo): ${valorParaleloBs.toFixed(2)} Bs`;
+        document.getElementById('paralelo-result').textContent = `Costo en Bs (EUROS): ${valorParaleloBs.toFixed(2)} Bs`;
         document.getElementById('promedio-result').textContent = `Costo en Bs (Promedio): ${valorPromedio.toFixed(2)} Bs`;
         document.getElementById('bcv-result').textContent = `Costo en Bs (BCV): ${valorBcv.toFixed(2)} Bs`;
     } else {
@@ -176,7 +183,7 @@ function calculateBs() {
         let valorPromedio = product / promedio;
 
         // Actualizar solo el texto dentro del <span>
-        document.getElementById('paralelo-result').textContent = `Costo en USD (Paralelo): ${valorParaleloBs.toFixed(2)} USD`;
+        document.getElementById('paralelo-result').textContent = `Costo en USD (EUROS): ${valorParaleloBs.toFixed(2)} USD`;
         document.getElementById('promedio-result').textContent = `Costo en USD (Promedio): ${valorPromedio.toFixed(2)} USD`;
         document.getElementById('bcv-result').textContent = `Costo en USD (BCV): ${valorBcv.toFixed(2)} USD`;
     } else {
@@ -187,7 +194,7 @@ function calculateBs() {
 // Función para limpiar los resultados
 function clearResults() {
     document.getElementById('labelMonto').textContent = "Ingresa el monto:";
-    document.getElementById('paralelo-result').textContent = 'Costo en (Paralelo): --';
+    document.getElementById('paralelo-result').textContent = 'Costo en (EUROS): --';
     document.getElementById('promedio-result').textContent = 'Costo en (Promedio): --';
     document.getElementById('bcv-result').textContent = 'Costo en (BCV): --';
 }
