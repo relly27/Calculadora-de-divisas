@@ -1,5 +1,5 @@
 const apiEuroBcv = "https://corsproxy.io/?url=https://www.bancodevenezuela.com/files/tasas/tasas2.json";
-const apiBcv = "https://pydolarve.org/api/v1/dollar?page=bcv";
+//const apiBcv = "https://pydolarve.org/api/v1/dollar?page=bcv";
 
 let Paralelo;
 let bcv;
@@ -89,13 +89,13 @@ async function fetchUsdValues() {
     try {
         let responseParalelo = await fetch(apiEuroBcv);
         let dataParalelo = await responseParalelo.json();
-        let responseBcv = await fetch(apiBcv);
-        let dataBcv = await responseBcv.json();
+        //let responseBcv = await fetch(apiEuroBcv);
+        //let dataBcv = await responseBcv.json();
 
         const newData = {
             Paralelo: parseFloat(dataParalelo.mesacambio.bcv.euros.replace(/[^0-9.]/g, '.')), // Elimina todo excepto números y punto decimal
-            bcv: dataBcv.monitors.usd.price,
-            promedio: (parseFloat(dataParalelo.mesacambio.bcv.euros.replace(/[^0-9.]/g, '.')) + dataBcv.monitors.usd.price) / 2
+            bcv: parseFloat(dataParalelo.mesacambio.bcv.dolares.replace(/[^0-9.]/g, '.')),
+            promedio: (parseFloat(dataParalelo.mesacambio.bcv.euros.replace(/[^0-9.]/g, '.')) + parseFloat(dataParalelo.mesacambio.bcv.dolares.replace(/[^0-9.]/g, '.'))) / 2
         };
         // Guardar los nuevos datos en el localStorage con la marca de tiempo actual
         localStorage.setItem('usdValues', JSON.stringify({ data: newData, timestamp: now }));
