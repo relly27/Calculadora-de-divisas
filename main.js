@@ -7,12 +7,12 @@ let promedio;
 
 // En tu main.js o similar
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-      navigator.serviceWorker.register('/service-worker.js').then(function(registration) {
-        registration.update(); // Fuerza la actualización
-      });
+    window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/service-worker.js').then(function (registration) {
+            registration.update(); // Fuerza la actualización
+        });
     });
-  }
+}
 
 // Función para formatear la fecha y hora
 function formatDateTime(timestamp) {
@@ -226,3 +226,49 @@ inputBs.addEventListener('input', () => {
         calculateBs(); // Calcular y mostrar resultados
     }
 });
+
+// ... (todo el código anterior permanece igual hasta el final) ...
+
+// Función para restablecer todo (limpiar inputs y resultados)
+function resetAll() {
+    console.log("Botón de reset clickeado"); // Para debugging
+
+    // Limpiar los inputs
+    inputUsd.value = '';
+    inputBs.value = '';
+
+    // Mostrar ambos inputs
+    inputUsd.style.display = 'block';
+    inputBs.style.display = 'block';
+
+    // Restaurar el label original
+    document.getElementById('labelMonto').textContent = "Ingresa el monto:";
+
+    // Limpiar los resultados
+    clearResults();
+
+    // Enfocar el primer input para mejor experiencia de usuario
+    inputUsd.focus();
+}
+
+// Evento para el botón de restablecer
+document.getElementById('reset-button').addEventListener('click', function (event) {
+    event.preventDefault(); // Previene cualquier comportamiento por defecto
+    event.stopPropagation(); // Detiene la propagación del evento
+    resetAll();
+});
+
+// También necesitas prevenir el comportamiento por defecto del formulario
+// Pero como ya cambiamos a div, esto no es necesario
+// document.getElementById('mi-form').addEventListener('submit', function(event) {
+//     event.preventDefault(); // Esto previene que la página se recargue
+// });
+
+// Asegurarte de que el botón de reset está disponible después de cargar la página
+window.onload = () => {
+    fetchUsdValues();
+    setupCopyButtons(); // Configurar los botones de copiar al cargar la página
+
+    // Agregar el event listener para el botón de reset aquí también
+    document.getElementById('reset-button').addEventListener('click', resetAll);
+};

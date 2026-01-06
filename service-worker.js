@@ -1,5 +1,5 @@
-const CACHE_NAME = 'v7';
-const MAX_CACHE_DAYS = 4; // Configura el número máximo de días
+const CACHE_NAME = 'v8';
+const MAX_CACHE_DAYS = 2; // Configura el número máximo de días
 const urlsToCache = [
   '/',
   '/index.html',
@@ -37,7 +37,7 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(cacheNames => 
+    caches.keys().then(cacheNames =>
       Promise.all(
         cacheNames.map(name => {
           if (name !== CACHE_NAME) {
@@ -57,7 +57,7 @@ self.addEventListener('fetch', event => {
       if (response) {
         const cachedDate = new Date(response.headers.get('date'));
         const cacheAgeInDays = (new Date() - cachedDate) / (1000 * 60 * 60 * 24);
-        
+
         if (cacheAgeInDays > MAX_CACHE_DAYS) {
           console.log(`Recurso expirado: ${event.request.url}`);
           return fetch(event.request) // Obtener versión fresca
