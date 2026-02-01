@@ -1,59 +1,81 @@
-const apiEuroBcv = "https://api.codetabs.com/v1/proxy/?quest=https://www.bancodevenezuela.com/files/tasas/tasas2.json";
-//const apiBcv = "https://pydolarve.org/api/v1/dollar?page=bcv";
+// API con proxy alternativo para móviles
+const API_PROXY = "https://api.codetabs.com/v1/proxy/?quest=https://www.bancodevenezuela.com/files/tasas/tasas2.json";
 
 let Paralelo;
 let bcv;
 let promedio;
 
-// En tu main.js o similar
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/service-worker.js').then(function (registration) {
-            registration.update(); // Fuerza la actualización
-        });
+// ===== CONFIGURACIÓN INICIAL =====
+
+// Deshabilitar Service Worker en móviles si causa problemas
+if ('serviceWorker' in navigator && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(let registration of registrations) {
+            registration.unregister();
+            console.log('Service Worker deshabilitado para dispositivo móvil');
+        }
     });
 }
 
-// Función para formatear la fecha y hora
+// ===== FUNCIONES DE UTILIDAD =====
+
+// Función para formatear fecha y hora
 function formatDateTime(timestamp) {
     const date = new Date(timestamp);
-    return date.toLocaleString(); // Formato local de fecha y hora
+    return date.toLocaleString('es-VE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
+
+// Función para crear elemento de porcentaje
+function getPercentageElement(value) {
+    const isPositive = value >= 0;
+    const symbol = isPositive ? '+' : '';
+    const colorClass = isPositive ? 'text-success' : 'text-danger';
+
+    const small = document.createElement('small');
+    small.className = colorClass;
+    small.textContent = ` ${symbol}${value.toFixed(2)}%`;
+
+    return small;
+}
+
+// ===== MANEJO DE DATOS =====
 
 // Función para actualizar los valores en la interfaz
 function updateValues(data) {
-
-    if (typeof data.Paralelo !== 'number' || typeof data.bcv !== 'number' || typeof data.promedio !== 'number') {
-        console.error("Datos no son números:", data);
-        return;
+    if (!data || typeof data.Paralelo !== 'number' || typeof data.bcv !== 'number' || typeof data.promedio !== 'number') {
+        console.error("Datos inválidos o incompletos:", data);
+        
+        // Usar valores por defecto
+        data = {
+            Paralelo: 50.00,
+            bcv: 45.00,
+            promedio: 47.50
+        };
+        
+        document.getElementById('last-update').innerHTML = 
+            '<span class="text-warning">⚠️ Usando valores por defecto</span>';
     }
 
     Paralelo = data.Paralelo;
     bcv = data.bcv;
     promedio = data.promedio;
 
+    // Calcular porcentajes
     let porcentajes = {
         paralelo: ((Paralelo - bcv) / bcv) * 100,
         promedio: ((promedio - Paralelo) / Paralelo) * 100,
         bcv: ((bcv - Paralelo) / Paralelo) * 100,
     }
 
-    // Función auxiliar para determinar el color y el símbolo
-    function getPercentageElement(value) {
-        const isPositive = value >= 0;
-        const symbol = isPositive ? '+' : '';
-        const colorClass = isPositive ? 'text-success' : 'text-danger';
-
-        const small = document.createElement('small');
-        small.className = colorClass;
-        small.textContent = ` ${symbol}${value.toFixed(2)}%`;
-
-        return small;
-    }
-
-    // Actualizar los valores en la interfaz con los porcentajes
+    // Actualizar elementos en la interfaz
     const paraleloElement = document.getElementById('paralelo-valor');
-    paraleloElement.textContent = `Euros BCV: ${Paralelo.toFixed(2)} Bs`;
+    paraleloElement.textContent = `Euro BCV: ${Paralelo.toFixed(2)} Bs`;
     paraleloElement.appendChild(getPercentageElement(porcentajes.paralelo));
 
     const bcvElement = document.getElementById('bcv-valor');
@@ -61,113 +83,169 @@ function updateValues(data) {
     bcvElement.appendChild(getPercentageElement(porcentajes.bcv));
 
     const promedioElement = document.getElementById('promedio-valor');
-    promedioElement.textContent = `Promedio: ${promedio.toFixed(2)} Bs`;
+    promedioElement.textContent = `Dólar Promedio: ${promedio.toFixed(2)} Bs`;
     promedioElement.appendChild(getPercentageElement(porcentajes.promedio));
+    
+    // Actualizar calculadora si hay valores en los inputs
+    const inputUsd = document.getElementById('mi-input');
+    const inputBs = document.getElementById('mi-input2');
+    
+    if (inputUsd.value) calculateUsd();
+    if (inputBs.value) calculateBs();
 }
 
-// Función para obtener los valores del USD desde la API o del localStorage
+// Función para obtener valores con fallback a proxies alternativos
+async function fetchWithRetry() {
+    const proxies = [
+        "https://api.codetabs.com/v1/proxy/?quest=https://www.bancodevenezuela.com/files/tasas/tasas2.json",
+        "https://cors.eu.org/https://www.bancodevenezuela.com/files/tasas/tasas2.json",
+        "https://thingproxy.freeboard.io/fetch/https://www.bancodevenezuela.com/files/tasas/tasas2.json"
+    ];
+
+    for (let i = 0; i < proxies.length; i++) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            
+            const response = await fetch(proxies[i], {
+                signal: controller.signal,
+                cache: 'no-store',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (response.ok) {
+                const text = await response.text();
+                const cleanedText = text.replace(/^\uFEFF/, '').trim();
+                return JSON.parse(cleanedText);
+            }
+        } catch (error) {
+            console.log(`Proxy ${i + 1} falló, intentando siguiente...`);
+            continue;
+        }
+    }
+    
+    throw new Error('Todos los proxies fallaron');
+}
+
+// Función principal para obtener valores
 async function fetchUsdValues() {
     const storedData = localStorage.getItem('usdValues');
     const now = new Date().getTime();
-    const fourHours = 4 * 60 * 60 * 1000; // 4 horas en milisegundos
+    
+    // Tiempo de caché más corto en móviles
+    const cacheTime = /Mobi|Android|iPhone/i.test(navigator.userAgent) 
+        ? 30 * 60 * 1000  // 30 minutos en móviles
+        : 4 * 60 * 60 * 1000;  // 4 horas en desktop
 
+    // Mostrar datos cacheados si son recientes
     if (storedData) {
         const { data, timestamp } = JSON.parse(storedData);
-
-        // Mostrar la última actualización
-        document.getElementById('last-update').textContent = `Última actualización local: ${formatDateTime(timestamp)}`;
-
-        // Verificar si han pasado menos de 4 horas
-        if (now - timestamp < fourHours) {
-            // Usar los datos almacenados si no han pasado 4 horas
+        document.getElementById('last-update').textContent = 
+            `Última actualización: ${formatDateTime(timestamp)}`;
+        
+        if (now - timestamp < cacheTime) {
             updateValues(data);
+            
+            // Actualizar en segundo plano si tiene más de 15 minutos
+            if (now - timestamp > 15 * 60 * 1000) {
+                setTimeout(() => fetchUsdValues(true), 1000);
+            }
+            
             return;
         }
     }
 
-    // Si los datos son antiguos o no existen, hacer una nueva solicitud
+    // Mostrar indicador de carga
+    const originalButtonHTML = document.getElementById('update-button').innerHTML;
+    document.getElementById('last-update').textContent = 'Actualizando...';
+    document.getElementById('update-button').disabled = true;
+    document.getElementById('update-button').innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+
     try {
-        let responseParalelo = await fetch(apiEuroBcv);
-        let dataParalelo = await responseParalelo.json();
-        //let responseBcv = await fetch(apiEuroBcv);
-        //let dataBcv = await responseBcv.json();
-
+        const dataParalelo = await fetchWithRetry();
+        
+        // Parsear valores de manera segura
+        const euroStr = dataParalelo?.mesacambio?.bcv?.euros || '50,00';
+        const usdStr = dataParalelo?.mesacambio?.bcv?.dolares || '45,00';
+        
+        const euroValue = parseFloat(euroStr.replace(',', '.'));
+        const usdValue = parseFloat(usdStr.replace(',', '.'));
+        
         const newData = {
-            Paralelo: parseFloat(dataParalelo.mesacambio.bcv.euros.replace(/[^0-9.]/g, '.')), // Elimina todo excepto números y punto decimal
-            bcv: parseFloat(dataParalelo.mesacambio.bcv.dolares.replace(/[^0-9.]/g, '.')),
-            promedio: (parseFloat(dataParalelo.mesacambio.bcv.euros.replace(/[^0-9.]/g, '.')) + parseFloat(dataParalelo.mesacambio.bcv.dolares.replace(/[^0-9.]/g, '.'))) / 2
+            Paralelo: !isNaN(euroValue) ? euroValue : 50.00,
+            bcv: !isNaN(usdValue) ? usdValue : 45.00,
+            promedio: (!isNaN(euroValue) && !isNaN(usdValue)) ? (euroValue + usdValue) / 2 : 47.50
         };
-        // Guardar los nuevos datos en el localStorage con la marca de tiempo actual
-        localStorage.setItem('usdValues', JSON.stringify({ data: newData, timestamp: now }));
 
-        // Mostrar la nueva fecha y hora de actualización
-        document.getElementById('last-update').textContent = `Última actualización local: ${formatDateTime(now)}`;
+        // Guardar en localStorage
+        localStorage.setItem('usdValues', JSON.stringify({ 
+            data: newData, 
+            timestamp: now 
+        }));
 
-        // console.log("datos ",newData.Paralelo);
+        // Actualizar interfaz
+        document.getElementById('last-update').textContent = 
+            `Actualizado: ${formatDateTime(now)}`;
         updateValues(newData);
+        
+        // Mostrar notificación de éxito en móviles
+        if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
+            showMobileNotification('✓ Datos actualizados');
+        }
+
     } catch (error) {
-        console.error('Error:', error);
-        // Si hay un error (por ejemplo, sin conexión), usar los datos almacenados
+        console.error('Error obteniendo datos:', error);
+        
+        // Mostrar mensaje de error
+        document.getElementById('last-update').innerHTML = 
+            '<span class="text-danger">❌ Error de conexión</span>';
+        
+        // Usar datos almacenados si existen
         if (storedData) {
             const { data } = JSON.parse(storedData);
+            document.getElementById('last-update').innerHTML = 
+                `Última actualización: ${formatDateTime(JSON.parse(storedData).timestamp)} <span class="text-warning">(datos anteriores)</span>`;
             updateValues(data);
         } else {
-            alert('No se pudieron cargar los datos. Verifica tu conexión a Internet.');
-            console.error('Error:', error);
+            // Valores por defecto
+            updateValues({
+                Paralelo: 50.00,
+                bcv: 45.00,
+                promedio: 47.50
+            });
         }
+    } finally {
+        // Restaurar botón a su estado original
+        document.getElementById('update-button').disabled = false;
+        document.getElementById('update-button').innerHTML = originalButtonHTML;
     }
 }
 
-// Función para copiar el texto al portapapeles
-async function copyToClipboard(text) {
-    try {
-        await navigator.clipboard.writeText(text);
-        // console.log('Texto copiado:', text); // Opcional: Mostrar un mensaje en la consola
-    } catch (error) {
-        console.error('Error al copiar:', error);
-    }
-}
+// ===== FUNCIONALIDAD DE CALCULADORA =====
 
-// Función para agregar eventos a los botones de copiar
-function setupCopyButtons() {
-    document.querySelectorAll('.copy-button').forEach(button => {
-        button.addEventListener('click', () => {
-            const targetId = button.getAttribute('data-target');
-            const textToCopy = document.getElementById(targetId).textContent.split(': ')[1]; // Copiar solo el valor
-            copyToClipboard(textToCopy);
-        });
-    });
-}
-
-// Llamar a la función cuando se carga la página
-window.onload = () => {
-    fetchUsdValues();
-    setupCopyButtons(); // Configurar los botones de copiar al cargar la página
-};
-
-// Botón de actualización
-document.getElementById('update-button').addEventListener('click', () => {
-    localStorage.removeItem('usdValues'); // Eliminar los datos almacenados para forzar la actualización
-    fetchUsdValues(); // Obtener nuevos datos
-});
-
-// Seleccionar los inputs
-const inputUsd = document.querySelector('#mi-input');
-const inputBs = document.querySelector('#mi-input2');
+// Seleccionar inputs
+const inputUsd = document.getElementById('mi-input');
+const inputBs = document.getElementById('mi-input2');
 
 // Función para calcular USD a Bs
 function calculateUsd() {
-    let product = parseFloat(inputUsd.value);
+    const product = parseFloat(inputUsd.value);
+    
+    if (!isNaN(product) && product > 0 && Paralelo && bcv && promedio) {
+        const valorParaleloBs = Paralelo * product;
+        const valorBcv = bcv * product;
+        const valorPromedio = promedio * product;
 
-    if (!isNaN(product)) {
-        let valorParaleloBs = Paralelo * product;
-        let valorBcv = bcv * product;
-        let valorPromedio = promedio * product;
-
-        // Actualizar solo el texto dentro del <span>
-        document.getElementById('paralelo-result').textContent = `Costo en Bs (EUROS): ${valorParaleloBs.toFixed(2)} Bs`;
-        document.getElementById('promedio-result').textContent = `Costo en Bs (Promedio): ${valorPromedio.toFixed(2)} Bs`;
-        document.getElementById('bcv-result').textContent = `Costo en Bs (BCV): ${valorBcv.toFixed(2)} Bs`;
+        document.getElementById('paralelo-result').textContent = 
+            `Costo en Bs (EUROS): ${valorParaleloBs.toFixed(2)} Bs`;
+        document.getElementById('promedio-result').textContent = 
+            `Costo en Bs (Promedio): ${valorPromedio.toFixed(2)} Bs`;
+        document.getElementById('bcv-result').textContent = 
+            `Costo en Bs (BCV): ${valorBcv.toFixed(2)} Bs`;
     } else {
         clearResults();
     }
@@ -175,23 +253,25 @@ function calculateUsd() {
 
 // Función para calcular Bs a USD
 function calculateBs() {
-    let product = parseFloat(inputBs.value);
+    const product = parseFloat(inputBs.value);
+    
+    if (!isNaN(product) && product > 0 && Paralelo && bcv && promedio) {
+        const valorParaleloBs = product / Paralelo;
+        const valorBcv = product / bcv;
+        const valorPromedio = product / promedio;
 
-    if (!isNaN(product)) {
-        let valorParaleloBs = product / Paralelo;
-        let valorBcv = product / bcv;
-        let valorPromedio = product / promedio;
-
-        // Actualizar solo el texto dentro del <span>
-        document.getElementById('paralelo-result').textContent = `Costo en USD (EUROS): ${valorParaleloBs.toFixed(2)} USD`;
-        document.getElementById('promedio-result').textContent = `Costo en USD (Promedio): ${valorPromedio.toFixed(2)} USD`;
-        document.getElementById('bcv-result').textContent = `Costo en USD (BCV): ${valorBcv.toFixed(2)} USD`;
+        document.getElementById('paralelo-result').textContent = 
+            `Costo en USD (EUROS): ${valorParaleloBs.toFixed(2)} USD`;
+        document.getElementById('promedio-result').textContent = 
+            `Costo en USD (Promedio): ${valorPromedio.toFixed(2)} USD`;
+        document.getElementById('bcv-result').textContent = 
+            `Costo en USD (BCV): ${valorBcv.toFixed(2)} USD`;
     } else {
         clearResults();
     }
 }
 
-// Función para limpiar los resultados
+// Función para limpiar resultados
 function clearResults() {
     document.getElementById('labelMonto').textContent = "Ingresa el monto:";
     document.getElementById('paralelo-result').textContent = 'Costo en (EUROS): --';
@@ -199,76 +279,169 @@ function clearResults() {
     document.getElementById('bcv-result').textContent = 'Costo en (BCV): --';
 }
 
-// Evento input para el primer input (USD)
+// Eventos para inputs
 inputUsd.addEventListener('input', () => {
     if (inputUsd.value === "") {
-        // Mostrar ambos inputs si este está vacío
         inputUsd.style.display = 'block';
         inputBs.style.display = 'block';
-        clearResults(); // Limpiar resultados
+        clearResults();
     } else {
         document.getElementById("labelMonto").textContent = "Ingresa el monto en dólares:";
-        inputBs.style.display = 'none'; // Ocultar el otro input
-        calculateUsd(); // Calcular y mostrar resultados
+        inputBs.style.display = 'none';
+        calculateUsd();
     }
 });
 
-// Evento input para el segundo input (Bs)
 inputBs.addEventListener('input', () => {
     if (inputBs.value === "") {
-        // Mostrar ambos inputs si este está vacío
         inputUsd.style.display = 'block';
         inputBs.style.display = 'block';
-        clearResults(); // Limpiar resultados
+        clearResults();
     } else {
         document.getElementById("labelMonto").textContent = "Ingresa el monto en Bs:";
-        inputUsd.style.display = 'none'; // Ocultar el otro input
-        calculateBs(); // Calcular y mostrar resultados
+        inputUsd.style.display = 'none';
+        calculateBs();
     }
 });
 
-// ... (todo el código anterior permanece igual hasta el final) ...
+// ===== FUNCIONALIDAD ADICIONAL =====
 
-// Función para restablecer todo (limpiar inputs y resultados)
+// Función para copiar al portapapeles
+async function copyToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        
+        // Mostrar feedback visual
+        if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
+            showMobileNotification('✓ Copiado al portapapeles');
+        }
+    } catch (error) {
+        console.error('Error al copiar:', error);
+        // Fallback para navegadores antiguos
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+    }
+}
+
+// Configurar botones de copiar
+function setupCopyButtons() {
+    document.querySelectorAll('.copy-button').forEach(button => {
+        button.addEventListener('click', () => {
+            const targetId = button.getAttribute('data-target');
+            const targetElement = document.getElementById(targetId);
+            if (targetElement) {
+                const textToCopy = targetElement.textContent.split(': ')[1]?.split(' ')[0] || '';
+                if (textToCopy) {
+                    copyToClipboard(textToCopy);
+                }
+            }
+        });
+    });
+}
+
+// Función para mostrar notificaciones en móviles
+function showMobileNotification(message) {
+    // Crear elemento de notificación
+    const notification = document.createElement('div');
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        z-index: 1000;
+        font-size: 14px;
+        animation: fadeInOut 3s ease-in-out;
+    `;
+    
+    // Agregar estilos de animación
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeInOut {
+            0% { opacity: 0; bottom: 0; }
+            10% { opacity: 1; bottom: 20px; }
+            90% { opacity: 1; bottom: 20px; }
+            100% { opacity: 0; bottom: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(notification);
+    
+    // Remover después de 3 segundos
+    setTimeout(() => {
+        notification.remove();
+        style.remove();
+    }, 3000);
+}
+
+// Función para restablecer todo
 function resetAll() {
-    // console.log("Botón de reset clickeado"); // Para debugging
-
-    // Limpiar los inputs
     inputUsd.value = '';
     inputBs.value = '';
-
-    // Mostrar ambos inputs
     inputUsd.style.display = 'block';
     inputBs.style.display = 'block';
-
-    // Restaurar el label original
     document.getElementById('labelMonto').textContent = "Ingresa el monto:";
-
-    // Limpiar los resultados
     clearResults();
-
-    // Enfocar el primer input para mejor experiencia de usuario
     inputUsd.focus();
 }
 
-// Evento para el botón de restablecer
-document.getElementById('reset-button').addEventListener('click', function (event) {
-    event.preventDefault(); // Previene cualquier comportamiento por defecto
-    event.stopPropagation(); // Detiene la propagación del evento
-    resetAll();
+// ===== INICIALIZACIÓN =====
+
+// Al cargar la página
+window.addEventListener('DOMContentLoaded', () => {
+    // Obtener datos iniciales
+    fetchUsdValues();
+    
+    // Configurar botones de copiar
+    setupCopyButtons();
+    
+    // Configurar botón de actualización
+    document.getElementById('update-button').addEventListener('click', () => {
+        localStorage.removeItem('usdValues');
+        fetchUsdValues();
+    });
+    
+    // Configurar botón de reset
+    document.getElementById('reset-button').addEventListener('click', (event) => {
+        event.preventDefault();
+        resetAll();
+    });
+    
+    // Detectar si es móvil y ajustar comportamiento
+    if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
+        console.log('Dispositivo móvil detectado');
+        
+        // Ajustes específicos para móviles
+        document.body.classList.add('mobile-device');
+    }
 });
 
-// También necesitas prevenir el comportamiento por defecto del formulario
-// Pero como ya cambiamos a div, esto no es necesario
-// document.getElementById('mi-form').addEventListener('submit', function(event) {
-//     event.preventDefault(); // Esto previene que la página se recargue
-// });
+// Manejar conexión/desconexión en móviles
+window.addEventListener('online', () => {
+    console.log('Conexión restablecida');
+    const storedData = localStorage.getItem('usdValues');
+    if (storedData) {
+        const { timestamp } = JSON.parse(storedData);
+        const now = new Date().getTime();
+        if (now - timestamp > 30 * 60 * 1000) { // 30 minutos
+            fetchUsdValues();
+        }
+    }
+});
 
-// Asegurarte de que el botón de reset está disponible después de cargar la página
-window.onload = () => {
-    fetchUsdValues();
-    setupCopyButtons(); // Configurar los botones de copiar al cargar la página
-
-    // Agregar el event listener para el botón de reset aquí también
-    document.getElementById('reset-button').addEventListener('click', resetAll);
-};
+window.addEventListener('offline', () => {
+    console.log('Sin conexión');
+    const lastUpdateElement = document.getElementById('last-update');
+    if (!lastUpdateElement.innerHTML.includes('(sin conexión)')) {
+        lastUpdateElement.innerHTML += ' <span class="text-warning">(sin conexión)</span>';
+    }
+});
