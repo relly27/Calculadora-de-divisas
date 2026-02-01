@@ -1,4 +1,4 @@
-const apiEuroBcv = "https://corsproxy.io/?url=https://www.bancodevenezuela.com/files/tasas/tasas2.json";
+const apiEuroBcv = "https://api.codetabs.com/v1/proxy/?quest=https://www.bancodevenezuela.com/files/tasas/tasas2.json";
 //const apiBcv = "https://pydolarve.org/api/v1/dollar?page=bcv";
 
 let Paralelo;
@@ -122,7 +122,7 @@ async function fetchUsdValues() {
 async function copyToClipboard(text) {
     try {
         await navigator.clipboard.writeText(text);
-        console.log('Texto copiado:', text); // Opcional: Mostrar un mensaje en la consola
+        // console.log('Texto copiado:', text); // Opcional: Mostrar un mensaje en la consola
     } catch (error) {
         console.error('Error al copiar:', error);
     }
@@ -231,7 +231,7 @@ inputBs.addEventListener('input', () => {
 
 // Función para restablecer todo (limpiar inputs y resultados)
 function resetAll() {
-    console.log("Botón de reset clickeado"); // Para debugging
+    // console.log("Botón de reset clickeado"); // Para debugging
 
     // Limpiar los inputs
     inputUsd.value = '';

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'v8';
+const CACHE_NAME = 'v9';
 const MAX_CACHE_DAYS = 2; // Configura el número máximo de días
 const urlsToCache = [
   '/',
